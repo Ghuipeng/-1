@@ -1,76 +1,62 @@
 #include <iostream>
-
+#include <omp.h>
+#include <windows.h>
+#include <stdlib.h>
 using namespace std;
-
+#define N 8192
+#define NUM_THREADS 4
+#define RANDOM_ADD 2
+float** M;
 int main()
 {
-    #pragma omp parallel num_threads(NUM_THREADS), private(i, j, k, tmp,myzero,first)
-     for (int k = 0; k < M; k++) {
-            myzero=true;
-            bool* p = e[k];
-            #pragma omp for
-            for (int i = 0; i < N; i ++)//¶ÔÓÚzeroº¯ÊýµÄ²¢ÐÐÊµÏÖ
-                if (p[i] != 0)
-                    myzero = false;
-            //²»ÄÜÍ¬Ê±¸ü¸ÄifzeroµÄÖµ£¬Ã¿´Î¸ü¸ÄÒªÉÏËø
-            #pragma omp critical (critical1)
-            if (!myzero) {
-            ifzero = false;
-            }//±ØÐëµÈ´ýËùÓÐµÄÏß³Ì¶¼ÅÐ¶ÏÍêÊÇ·ñÎª0Ö®ºóifzero
-            //²ÅÊÇÒ»¸öÕýÈ·µÄÖµ£¬ÔÚ´ËÖ®Ç°ËùÓÐÏß³Ì×ÔÈ»ÐèÒªµÈ´ý
-            #pragma omp barrier
-            while (!ifzero){
-                if (r[E[k] != NULL]) {
-                    #pragma omp for
-                    for (int j = 0; j < N; j ++) {
-                        e[k][j]=e[k][j]^r[E[k]][j] ;
-                    }
-                    ifzero = 1;//ÖØÖÃifzero£¬¿ªÆôÏÂÒ»´ÎµÄzero²Ù×÷£¬ÕâÀïÊÇ¶ÔËùÓÐµÄÏß³Ì¾ù¸³Öµ£¬Ò²¿É
-                    //ÒÔ·ÂÕÕallbarrier°æ±¾¶Ô0Ïß³Ì½øÐÐÅÐ¶Ï
-                    #pragma omp barrier//ÕâÀïºÃÏñÒòÎªÏß³ÌÖ»²Ù×÷×Ô¼ºµÄÊý¾Ý¿´ÆðÀ´¿É
-                    //ÒÔÌø¹ý£¬ÊÂÊµÉÏÊÇ²»¿ÉÒÔµÄ£¬ÒòÎª²»¹ÜÊÇ·ñ²ÉÓÃ¶Ô0Ïß³ÌÅÐ¶ÏµÄ°æ±¾£¬
-                    //Ö±½Ó¼ÌÐøÏÂÁÐ²Ù×÷¶¼¿ÉÄÜ³öÏÖifzro±»ÖÃ0ºóÔÙ´ÎÖÃ1µÄÇé¿ö
-                    myzero=true;
-                    bool* p = e[k];
-                    #pragma omp for
-                    for (int i = 0; i < N; i ++)//¶ÔÓÚzeroº¯ÊýµÄ²¢ÐÐÊµÏÖ
-                        if (p[i] != 0)
-                            myzero = false;
-                    #pragma omp critical (critical2)
-                    if (!myzero) {
-                        ifzero = false;
-                    }
-                   #pragma omp barrier
-                    first=N;
-                    #pragma omp for
-                    for (int j = 0; j < N; j ++) {//ÕâÊÇÓÃÀ´ÓÃÀ´¸üÐÂE[i]µÄÏà¹Ø²Ù×÷£¬
-                    //E[i]±£´æµÚi¸ö±»ÏûÔªÐÐµÄÊ×ÏîµÄÎ»ÖÃ£¬ÕâÊÇºÜÖØÒªµÄ
-                        if (e[k][j] != 0)
-                        {
-                        first = k;
-                        break;
-                        }
-                    }
-                    E[k] = N;
-                    #pragma omp barrier//ÕâÀïµÈ´ýµÄÔ­ÀíÍ¬ÉÏ
-                    #pragma omp critical (critical3)
-                    if (first < E[k])//Ã¿¸öÏß³Ì¸÷×Ô±È½Ï£¬Ò»µ©·¢ÏÖÐ¡ÓÚÔò½»»»
-                        E[k] = first;
-                    #pragma omp barrier
-                }
-                else {
-                    pthread_barrier_wait(&barrier_new);
-                    #pragma omp critical (critical4)//Èç¹ûÃ»ÓÐ¶ÔÓ¦µÄÏûÔªÐÐ£¬Ôò¸üÐÂ×Ô¼ºÎªÏûÔªÐÐ£¬
-                    //Ö®ºóÍË³öÑ­»·¼´¿É
-                    if(r[E[k] == NULL])
-                        r[E[k]] = new bool[N];
-                    #pragma omp for
-                    for (int j = 0; j < N; j++) {
-                        r[E[k]][j] = e[k][j];
-                    }
-                break;
-                }
-            }
+    cout<<4<<endl;
+    long long head, tail, freq;
+	M = new float* [N];
+	for (int i = 0; i < N; i++) {
+		M[i] = new float[N];
+	}
+	for (int i = 0; i < N; i++) {
+		M[i] = new float[N];
+		for (int j = 0; j < i; j++)
+			M[i][j] = 0;
+
+		for (int j = i; j < N; j++)
+			M[i][j] = rand() % 50;
+	}
+	for (int k = 0; k < RANDOM_ADD; k++) {
+		for (int i = 0; i < N; i++) {
+			int temp = (k * 2 + i * 3) % N;
+			for (int j = 0; j < N; j++)
+				M[temp][j] += M[i][j];
+		}
+	}
+	int k,i,j;
+	double tmp;
+	QueryPerformanceFrequency((LARGE_INTEGER*)&freq);
+    QueryPerformanceCounter((LARGE_INTEGER*)&head);
+	#pragma omp parallel num_threads(NUM_THREADS), private(i, j, k, tmp)
+	 for( k = 1; k < N; ++k){
+        // ä¸²è¡Œéƒ¨åˆ†ï¼Œä¹Ÿå¯ä»¥å°è¯•å¹¶è¡ŒåŒ–
+        //#pragma omp
+        tmp=M[k][k];
+         #pragma omp for
+        for(int j = k + 1; j < N; ++j){
+            M[k][j] = M[k][j] / tmp;
         }
+        M[k][k] = 1.0;
+        // å¹¶è¡Œéƒ¨åˆ†ï¼Œä½¿ç”¨è¡Œåˆ’åˆ†
+        #pragma omp for
+        for( i = k + 1; i < N; ++i){
+            tmp = M[i][k];
+            for(int j = k + 1; j < N; ++j){
+                M[i][j] = M[i][j] - tmp * M[k][j];
+            }
+            M[i][k] = 0.0;
+        // ç¦»å¼€forå¾ªçŽ¯æ—¶ï¼Œå„ä¸ªçº¿ç¨‹é»˜è®¤åŒæ­¥ï¼Œè¿›å…¥ä¸‹ä¸€è¡Œçš„å¤„ç†
+        }
+	 }
+    QueryPerformanceCounter((LARGE_INTEGER*)&tail);
+
+    cout << (tail - head) * 1000.0 / freq << "ms" << endl;
     return 0;
 }
